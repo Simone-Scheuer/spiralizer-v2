@@ -300,7 +300,7 @@ export const defaultConfigV2: SpiralConfigV2 = {
   // Core motion
   stepLength: 5,
   angleChange: 360,
-  angleIncrement: 0,
+  angleIncrement: 0.1,
   speed: 20,
   stepsPerFrame: 1,
   acceleration: 0,
