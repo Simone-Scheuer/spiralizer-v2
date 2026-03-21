@@ -6,6 +6,7 @@ import { Toolbar } from '@/app/features/Toolbar'
 import { ControlPanel } from '@/app/features/ControlPanel'
 import { ImmersiveOverlay } from '@/app/features/ImmersiveOverlay'
 import { ShortcutModal } from '@/app/features/ShortcutModal'
+import { OnboardingModal } from '@/app/features/OnboardingModal'
 import { useSpiralStore } from '@/app/store/spiralStore'
 import { useKeyboard } from '@/app/hooks/useKeyboard'
 import { useAudio } from '@/app/hooks/useAudio'
@@ -326,8 +327,23 @@ export default function Home() {
         />
       )}
 
+      {/* Made by Mona watermark */}
+      {!isImmersive && (
+        <a
+          href="https://simonescheuer.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-2.5 right-3 text-[10px] font-mono text-white/15 hover:text-white/40 transition-colors z-10 select-none"
+        >
+          made by mona
+        </a>
+      )}
+
       {/* Keyboard shortcut modal */}
       <ShortcutModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      {/* First-visit onboarding */}
+      <OnboardingModal />
     </div>
     </ErrorBoundary>
   )
