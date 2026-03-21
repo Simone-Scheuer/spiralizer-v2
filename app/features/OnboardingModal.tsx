@@ -20,7 +20,7 @@ const STEPS: Step[] = [
   {
     icon: <Zap size={20} />,
     title: 'Generate & Explore',
-    body: 'Hit Randomize (R) to generate a new spiral instantly. Use the Curated Collection in the Presets tab for hand-picked dramatic spirals. Press Space to pause/play.',
+    body: 'Hit Randomize (R) to generate a new spiral instantly. Save any spiral you like as a preset in the Presets tab. Press Space to pause/play.',
   },
   {
     icon: <Sliders size={20} />,

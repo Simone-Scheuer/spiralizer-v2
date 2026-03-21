@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Search, Plus, Trash2, X, Share2, Star } from 'lucide-react'
+import { Search, Plus, Trash2, X, Share2 } from 'lucide-react'
 import { useSpiralStore } from '@/app/store/spiralStore'
 import { generateThumbnail } from '@/app/components/PresetThumbnail'
 import { getShareURL } from '@/app/utils/urlEncoding'
 import { sanitizeString } from '@/app/utils/validation'
-import { curatedPresets } from '@/app/data/curatedPresets'
 import { toast } from 'sonner'
 
 const MAX_PRESET_NAME_LENGTH = 50
@@ -22,22 +21,9 @@ export function PresetsPanel({ onRestart, onClear }: PresetsPanelProps) {
   const [saveName, setSaveName] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const [showCurated, setShowCurated] = useState(true)
-
   const filtered = store.presets.filter(p =>
     p.name.toLowerCase().includes(query.toLowerCase())
   )
-
-  const filteredCurated = curatedPresets.filter(p =>
-    p.name.toLowerCase().includes(query.toLowerCase())
-  )
-
-  const handleLoadCurated = useCallback((preset: typeof curatedPresets[0]) => {
-    store.loadConfig(preset.config)
-    store.updateRenderSettings(preset.renderSettings)
-    onClear()
-    setTimeout(onRestart, 50)
-  }, [store, onClear, onRestart])
 
   const handleSave = useCallback(async () => {
     const name = sanitizeString(saveName.trim(), MAX_PRESET_NAME_LENGTH)
@@ -103,43 +89,6 @@ export function PresetsPanel({ onRestart, onClear }: PresetsPanelProps) {
           )}
         </div>
       )}
-
-      {/* Curated presets */}
-      <div className="space-y-2">
-        <button
-          onClick={() => setShowCurated(!showCurated)}
-          className="flex items-center gap-1.5 text-[10px] font-mono text-amber-400/60 uppercase tracking-[0.18em] hover:text-amber-400/90 transition-colors w-full"
-        >
-          <Star size={10} fill="currentColor" />
-          Curated Collection
-          <span className="text-white/20 ml-auto">{showCurated ? '\u25B4' : '\u25BE'}</span>
-        </button>
-        {showCurated && (
-          <div className="grid grid-cols-2 gap-2">
-            {filteredCurated.map(preset => (
-              <div
-                key={preset.id}
-                className="group relative rounded-lg border border-amber-400/[0.12] overflow-hidden bg-zinc-900/50 hover:border-amber-400/30 transition-colors cursor-pointer"
-                onClick={() => handleLoadCurated(preset)}
-              >
-                <div className="aspect-square bg-black flex items-center justify-center">
-                  <div className="text-white/10 text-[9px] font-mono text-center px-1">
-                    {preset.config.spiralType}
-                  </div>
-                </div>
-                <div className="p-1.5">
-                  <div className="text-[10px] font-mono text-amber-300/70 truncate leading-none">{preset.name}</div>
-                  <div className="text-[9px] font-mono text-white/25 mt-0.5">
-                    {preset.config.spiralType} {preset.config.symmetry > 1 ? `\u00D7${preset.config.symmetry}` : ''}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="h-px bg-white/[0.06]" />
 
       {/* User preset grid */}
       {filtered.length === 0 ? (

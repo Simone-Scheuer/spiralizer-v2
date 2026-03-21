@@ -12,8 +12,7 @@ import type {
   ColorMode,
   RandomizationConstraints,
 } from '@/app/models/types'
-import { defaultConstraints, defaultRenderSettings } from '@/app/models/types'
-import { isGoodSpiral } from '@/app/utils/spiralQuality'
+import { defaultConstraints } from '@/app/models/types'
 
 function rand(min: number, max: number): number {
   return min + Math.random() * (max - min)
@@ -70,18 +69,13 @@ function randomColor(): string {
 /**
  * Generate a new random config, preserving locked params from `current`
  * and respecting optional `constraints` for type pool and numeric ranges.
- * Retries up to 5 times if the config fails quality evaluation.
  */
 export function createRandomConfig(
   current: SpiralConfigV2,
   locks: SpiralConfigLocks,
   constraints: RandomizationConstraints = defaultConstraints()
 ): SpiralConfigV2 {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const config = _generateRandom(current, locks, constraints)
-    if (attempt >= 4 || isGoodSpiral(config)) return config
-  }
-  return _generateRandom(current, locks, constraints) // fallback
+  return _generateRandom(current, locks, constraints)
 }
 
 function _generateRandom(
