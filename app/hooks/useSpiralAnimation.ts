@@ -354,7 +354,7 @@ function _drawWithSymmetry(
       let t = { x: to.x + perpX, y: to.y + perpY }
 
       // Apply symmetry rotation around origin
-      if (sym > 0) {
+      if (symAngleRad !== 0) {
         f = rotatePoint(f, symAngleRad)
         t = rotatePoint(t, symAngleRad)
       }

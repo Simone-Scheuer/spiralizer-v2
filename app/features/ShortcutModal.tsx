@@ -33,6 +33,8 @@ const SECTIONS = [
     shortcuts: [
       { key: 'L', desc: 'Lock / Unlock all' },
       { key: 'S', desc: 'Save preset' },
+      { key: 'V', desc: 'Record / Stop video' },
+      { key: 'C', desc: 'Center view' },
       { key: 'Ctrl+C', desc: 'Copy share URL' },
       { key: 'Ctrl+1-6', desc: 'Switch panel tab' },
     ],

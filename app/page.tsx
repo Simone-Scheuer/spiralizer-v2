@@ -13,6 +13,8 @@ import type { useSpiralAnimation } from '@/app/hooks/useSpiralAnimation'
 import type { SpiralConfigV2, AudioState, RenderSettings } from '@/app/models/types'
 import { getShareURL, parseShareURL } from '@/app/utils/urlEncoding'
 import { downloadPNG } from '@/app/utils/screenshot'
+import { VideoRecorder } from '@/app/utils/videoRecorder'
+import type { VideoRecorderState, VideoFormat } from '@/app/utils/videoRecorder'
 import { toast } from 'sonner'
 import { ErrorBoundary } from '@/app/components/ErrorBoundary'
 import { WebGLFallback } from '@/app/components/WebGLFallback'
@@ -25,6 +27,8 @@ export default function Home() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const store = useSpiralStore()
   const controlsRef = useRef<AnimControls | null>(null)
+  const videoRecorderRef = useRef<VideoRecorder | null>(null)
+  const [recordingState, setRecordingState] = useState<VideoRecorderState>({ isRecording: false, duration: 0 })
 
   // ── Synced refs (avoid re-creating hooks on every render) ────────────────────
   const configRef     = useRef<SpiralConfigV2>(store.config)
@@ -79,6 +83,33 @@ export default function Home() {
     const dataURL = renderer.getDataURL()
     downloadPNG(dataURL)
     toast.success('PNG exported')
+  }, [])
+
+  const handleRecord = useCallback((format: VideoFormat = 'tiktok') => {
+    if (!videoRecorderRef.current) {
+      videoRecorderRef.current = new VideoRecorder()
+      videoRecorderRef.current.setOnStateChange(setRecordingState)
+    }
+    const recorder = videoRecorderRef.current
+    if (recorder.isRecording) {
+      recorder.stop()
+      toast.success('Video saved')
+    } else {
+      const renderer = controlsRef.current?.getRenderer()
+      if (!renderer) { toast.error('Renderer not ready'); return }
+      const ok = recorder.start(renderer.getCanvas(), 60, format)
+      if (ok) {
+        toast.success('Recording started')
+      } else {
+        toast.error('Failed to start recording')
+      }
+    }
+  }, [])
+
+  const centerViewRef = useRef<(() => void) | null>(null)
+
+  const handleCenter = useCallback(() => {
+    centerViewRef.current?.()
   }, [])
 
   const handleShowShortcuts = useCallback(() => {
@@ -156,7 +187,14 @@ export default function Home() {
     onClear: handleClear,
     onRestart: handleRestart,
     onShowShortcuts: handleShowShortcuts,
+    onRecord: handleRecord,
+    onCenter: handleCenter,
   })
+
+  // Clean up video recorder on unmount
+  useEffect(() => {
+    return () => { videoRecorderRef.current?.dispose() }
+  }, [])
 
   useEffect(() => setMounted(true), [])
 
@@ -226,6 +264,10 @@ export default function Home() {
           onRestart={handleRestart}
           onShare={handleShare}
           onExport={handleExport}
+          onRecord={handleRecord}
+          onCenter={handleCenter}
+          isRecording={recordingState.isRecording}
+          recordingDuration={recordingState.duration}
         />
       </div>
 
@@ -263,6 +305,7 @@ export default function Home() {
               onControls={handleControls}
               reactiveModsRef={reactiveModsRef}
               renderSettingsRef={renderSettingsRef}
+              centerRef={centerViewRef}
             />
           </div>
 
@@ -275,7 +318,12 @@ export default function Home() {
 
       {/* Immersive overlay — floating pill */}
       {isImmersive && (
-        <ImmersiveOverlay onRandomize={handleRandomize} />
+        <ImmersiveOverlay
+          onRandomize={handleRandomize}
+          onRecord={handleRecord}
+          onCenter={handleCenter}
+          isRecording={recordingState.isRecording}
+        />
       )}
 
       {/* Keyboard shortcut modal */}

@@ -35,7 +35,7 @@ export function ControlPanel({ onClear, onRestart, audioPanelProps }: ControlPan
 
   return (
     <aside
-      className={`flex-none flex flex-col border-r border-white/[0.07] bg-zinc-950/92 backdrop-blur-2xl transition-all duration-200 overflow-hidden ${
+      className={`flex-none flex flex-col h-full border-r border-white/[0.07] bg-zinc-950/92 backdrop-blur-2xl transition-all duration-200 overflow-hidden ${
         collapsed ? 'w-11' : 'w-72'
       }`}
     >

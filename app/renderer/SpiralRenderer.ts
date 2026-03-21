@@ -29,6 +29,7 @@ export class SpiralRenderer {
   private _geometry: SpiralGeometry | null = null
   private postProcessor: PostProcessor | null = null
   private renderSettings: RenderSettings | null = null
+  private contextLost = false
 
   get geometry(): SpiralGeometry {
     if (!this._geometry) throw new Error('SpiralRenderer not initialized')
@@ -88,6 +89,21 @@ export class SpiralRenderer {
     // ── Spiral Geometry ──────────────────────────────────────────────────────
     this._geometry = new SpiralGeometry()
     this._geometry.addToScene(this.scene, this.width, this.height)
+
+    // ── WebGL Context Loss Recovery ──────────────────────────────────────────
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault()
+      this.contextLost = true
+    })
+    canvas.addEventListener('webglcontextrestored', () => {
+      this.contextLost = false
+      this.renderer.setPixelRatio(window.devicePixelRatio)
+      this.renderer.setSize(this.width, this.height, false)
+      this.renderer.setClearColor(0x000000, 1)
+      const dpr = this.renderer.getPixelRatio()
+      this.accumTarget.setSize(Math.round(this.width * dpr), Math.round(this.height * dpr))
+      this.postProcessor?.resize(this.width, this.height)
+    })
   }
 
   private _makeOrthoCam(w: number, h: number): THREE.OrthographicCamera {
@@ -168,6 +184,7 @@ export class SpiralRenderer {
    * then output to screen — via PostProcessor when effects are active, or direct blit otherwise.
    */
   render(): void {
+    if (this.contextLost) return
     // 1. Render incremental geometry into accumTarget (NO autoClear)
     this.renderer.autoClear = false
     this.renderer.setRenderTarget(this.accumTarget)
@@ -203,6 +220,11 @@ export class SpiralRenderer {
   /** Export current canvas as PNG data URL */
   getDataURL(): string {
     return this.renderer.domElement.toDataURL('image/png')
+  }
+
+  /** Get the underlying canvas element (for video capture) */
+  getCanvas(): HTMLCanvasElement {
+    return this.renderer.domElement
   }
 
   get canvasWidth(): number { return this.width }

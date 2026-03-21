@@ -1,18 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, Zap, X } from 'lucide-react'
+import { Play, Pause, Zap, X, Circle, Crosshair } from 'lucide-react'
 import { useSpiralStore } from '@/app/store/spiralStore'
 
 interface ImmersiveOverlayProps {
   onRandomize: () => void
+  onRecord?: () => void
+  onCenter?: () => void
+  isRecording?: boolean
 }
 
 /**
  * Floating pill control that appears in immersive fullscreen mode.
  * Auto-hides after 3 seconds of mouse inactivity, reappears on move.
  */
-export function ImmersiveOverlay({ onRandomize }: ImmersiveOverlayProps) {
+export function ImmersiveOverlay({ onRandomize, onRecord, onCenter, isRecording }: ImmersiveOverlayProps) {
   const store = useSpiralStore()
   const [visible, setVisible] = useState(true)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -57,6 +60,26 @@ export function ImmersiveOverlay({ onRandomize }: ImmersiveOverlayProps) {
         aria-label="Randomize"
       >
         <Zap size={14} />
+      </button>
+
+      <button
+        onClick={onRecord}
+        className={`h-8 w-8 flex items-center justify-center rounded-full transition-colors ${
+          isRecording
+            ? 'text-red-400 bg-red-500/15 animate-pulse'
+            : 'text-white/60 hover:text-red-400 hover:bg-red-500/10'
+        }`}
+        aria-label={isRecording ? 'Stop recording' : 'Record video'}
+      >
+        <Circle size={14} fill={isRecording ? 'currentColor' : 'none'} />
+      </button>
+
+      <button
+        onClick={onCenter}
+        className="h-8 w-8 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Center view"
+      >
+        <Crosshair size={14} />
       </button>
 
       <div className="h-4 w-px bg-white/[0.1]" />

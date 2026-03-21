@@ -12,7 +12,8 @@ import type {
   ColorMode,
   RandomizationConstraints,
 } from '@/app/models/types'
-import { defaultConstraints } from '@/app/models/types'
+import { defaultConstraints, defaultRenderSettings } from '@/app/models/types'
+import { isGoodSpiral } from '@/app/utils/spiralQuality'
 
 function rand(min: number, max: number): number {
   return min + Math.random() * (max - min)
@@ -69,11 +70,24 @@ function randomColor(): string {
 /**
  * Generate a new random config, preserving locked params from `current`
  * and respecting optional `constraints` for type pool and numeric ranges.
+ * Retries up to 5 times if the config fails quality evaluation.
  */
 export function createRandomConfig(
   current: SpiralConfigV2,
   locks: SpiralConfigLocks,
   constraints: RandomizationConstraints = defaultConstraints()
+): SpiralConfigV2 {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const config = _generateRandom(current, locks, constraints)
+    if (attempt >= 4 || isGoodSpiral(config)) return config
+  }
+  return _generateRandom(current, locks, constraints) // fallback
+}
+
+function _generateRandom(
+  current: SpiralConfigV2,
+  locks: SpiralConfigLocks,
+  constraints: RandomizationConstraints
 ): SpiralConfigV2 {
   // Helper: use current value if locked, else call fn()
   function maybeRand<K extends keyof SpiralConfigV2>(
@@ -110,6 +124,9 @@ export function createRandomConfig(
   const colorMode = maybeRand('colorMode', () => pick(colorModePool))
 
   const c = constraints  // shorthand
+
+  // Pre-compute symmetry so we can derive symmetryRotation = 360/N
+  const sym = maybeRand('symmetry', () => crandInt('symmetry', 1, 8, c))
 
   return {
     // Type
@@ -188,12 +205,14 @@ export function createRandomConfig(
     colorCycle:     maybeRand('colorCycle',     () => pick(['none', 'smooth', 'steps'])),
     colorSteps:     maybeRand('colorSteps',     () => crandInt('colorSteps', 2, 10, c)),
 
-    // Pattern
+    // Pattern — enforce aesthetic symmetry:
+    // When symmetry > 1, symmetryRotation = 360/N for perfect radial patterns.
+    // rotationOffset uses clean angles (multiples of 15) to avoid asymmetric mess.
     multiLineCount:   maybeRand('multiLineCount',   () => crandInt('multiLineCount', 1, 6, c)),
     multiLineSpacing: maybeRand('multiLineSpacing', () => crand('multiLineSpacing', 0, 30, c)),
-    rotationOffset:   maybeRand('rotationOffset',   () => crand('rotationOffset', 0, 360, c)),
-    symmetry:         maybeRand('symmetry',         () => crandInt('symmetry', 1, 8, c)),
-    symmetryRotation: maybeRand('symmetryRotation', () => crand('symmetryRotation', 0, 360, c)),
+    rotationOffset:   maybeRand('rotationOffset',   () => pick([0, 0, 0, 15, 30, 45, 60, 90, 120, 180])),
+    symmetry:         sym,
+    symmetryRotation: locks.symmetryRotation ? current.symmetryRotation : (sym > 1 ? 360 / sym : 0),
     pulseEffect:      maybeRand('pulseEffect',      () => Math.random() < 0.2),
     pulseSpeed:       maybeRand('pulseSpeed',       () => crand('pulseSpeed', 0.3, 4, c)),
     pulseRange:       maybeRand('pulseRange',       () => crand('pulseRange', 0.1, 0.8, c)),

@@ -1,8 +1,11 @@
 'use client'
 
-import { Play, Pause, Zap, Trash2, RotateCcw, RotateCw, Lock, Unlock, Monitor, Maximize, Share2, Download } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Play, Pause, Zap, Trash2, RotateCcw, RotateCw, Lock, Unlock, Monitor, Maximize, Share2, Download, Circle, Crosshair, ChevronDown } from 'lucide-react'
 import { useSpiralStore } from '@/app/store/spiralStore'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { VideoFormat } from '@/app/utils/videoRecorder'
+import { VIDEO_FORMATS } from '@/app/utils/videoRecorder'
 
 interface ToolbarProps {
   onRandomize: () => void
@@ -10,6 +13,10 @@ interface ToolbarProps {
   onRestart: () => void
   onShare: () => void
   onExport: () => void
+  onRecord: (format: VideoFormat) => void
+  onCenter: () => void
+  isRecording: boolean
+  recordingDuration: number
 }
 
 interface TipBtnProps {
@@ -43,7 +50,13 @@ function TipBtn({ tip, onClick, children, active, activeClass, className = '' }:
   )
 }
 
-export function Toolbar({ onRandomize, onClear, onRestart, onShare, onExport }: ToolbarProps) {
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+export function Toolbar({ onRandomize, onClear, onRestart, onShare, onExport, onRecord, onCenter, isRecording, recordingDuration }: ToolbarProps) {
   const store = useSpiralStore()
   const { uiState, locks } = store
   const anyLocked = Object.values(locks).some(Boolean)
@@ -190,6 +203,19 @@ export function Toolbar({ onRandomize, onClear, onRestart, onShare, onExport }: 
         Export
       </TipBtn>
 
+      <RecordButton
+        isRecording={isRecording}
+        recordingDuration={recordingDuration}
+        onRecord={onRecord}
+      />
+
+      <div className="h-4 w-px bg-white/[0.08] flex-none" />
+
+      <TipBtn tip="Center view (C)" onClick={onCenter}>
+        <Crosshair size={11} />
+        Center
+      </TipBtn>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -205,8 +231,102 @@ export function Toolbar({ onRandomize, onClear, onRestart, onShare, onExport }: 
 
       {/* Keyboard hints */}
       <span className="text-white/15 text-[10px] font-mono hidden 2xl:block flex-none ml-2">
-        Space · R · U · D · L · F · ?
+        Space · R · U · D · L · V · C · F · ?
       </span>
     </header>
+  )
+}
+
+const FORMAT_OPTIONS: { value: VideoFormat; label: string }[] = [
+  { value: 'tiktok',    label: '9:16 TikTok' },
+  { value: 'square',    label: '1:1 Square' },
+  { value: 'landscape', label: '16:9 Wide' },
+  { value: 'native',    label: 'Native' },
+]
+
+function RecordButton({
+  isRecording,
+  recordingDuration,
+  onRecord,
+}: {
+  isRecording: boolean
+  recordingDuration: number
+  onRecord: (format: VideoFormat) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [selectedFormat, setSelectedFormat] = useState<VideoFormat>('tiktok')
+  const dropRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  if (isRecording) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => onRecord(selectedFormat)}
+            className="h-7 px-2.5 flex items-center gap-1.5 rounded border text-xs font-mono transition-all duration-100 border-red-500/60 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse"
+          >
+            <Circle size={11} fill="currentColor" />
+            {formatDuration(recordingDuration)}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-[11px] font-mono">Stop recording</TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  const label = FORMAT_OPTIONS.find(f => f.value === selectedFormat)?.label ?? 'Record'
+
+  return (
+    <div ref={dropRef} className="relative flex items-center">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => onRecord(selectedFormat)}
+            className="h-7 px-2.5 flex items-center gap-1.5 rounded-l border border-r-0 text-xs font-mono transition-all duration-100 border-white/[0.1] text-white/50 hover:border-white/25 hover:text-white/80 hover:bg-white/[0.04]"
+          >
+            <Circle size={11} />
+            {label}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-[11px] font-mono">Record video (V)</TooltipContent>
+      </Tooltip>
+      <button
+        onClick={() => setOpen(!open)}
+        className="h-7 px-1 flex items-center rounded-r border text-xs font-mono transition-all duration-100 border-white/[0.1] text-white/35 hover:border-white/25 hover:text-white/70 hover:bg-white/[0.04]"
+      >
+        <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-white/[0.12] rounded-lg shadow-xl z-50 py-1 min-w-[140px]">
+          {FORMAT_OPTIONS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => { setSelectedFormat(f.value); setOpen(false) }}
+              className={`w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${
+                selectedFormat === f.value
+                  ? 'text-cyan-400 bg-cyan-400/10'
+                  : 'text-white/60 hover:text-white/90 hover:bg-white/[0.06]'
+              }`}
+            >
+              {f.label}
+              {f.value !== 'native' && (
+                <span className="text-white/20 ml-1.5">
+                  {VIDEO_FORMATS[f.value].width}x{VIDEO_FORMATS[f.value].height}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

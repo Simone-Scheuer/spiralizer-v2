@@ -12,6 +12,8 @@ interface KeyboardHandlers {
   onRestart: () => void
   onExport?: () => void
   onShowShortcuts?: () => void
+  onRecord?: () => void
+  onCenter?: () => void
 }
 
 const TABS: PanelTab[] = ['shape', 'motion', 'style', 'pattern', 'audio', 'presets']
@@ -166,6 +168,14 @@ export function useKeyboard(handlers: KeyboardHandlers) {
         }
         break
       }
+      case 'v': case 'V':
+        e.preventDefault()
+        handlers.onRecord?.()
+        break
+      case 'c': case 'C':
+        e.preventDefault()
+        handlers.onCenter?.()
+        break
       case '?':
         e.preventDefault()
         handlers.onShowShortcuts?.()

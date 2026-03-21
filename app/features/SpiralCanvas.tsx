@@ -13,13 +13,15 @@ interface SpiralCanvasProps {
   reactiveModsRef?: RefObject<Partial<SpiralConfigV2>>
   /** Render settings ref — passed to PostProcessor each frame */
   renderSettingsRef?: RefObject<RenderSettings>
+  /** Ref that parent can call to trigger center view reset */
+  centerRef?: React.MutableRefObject<(() => void) | null>
 }
 
 /**
  * Full-screen Three.js canvas component.
  * Mounts the WebGL renderer and wires up zoom + pan.
  */
-export function SpiralCanvas({ config, isPaused, onControls, reactiveModsRef, renderSettingsRef }: SpiralCanvasProps) {
+export function SpiralCanvas({ config, isPaused, onControls, reactiveModsRef, renderSettingsRef, centerRef }: SpiralCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const controls = useSpiralAnimation(canvasRef, config, reactiveModsRef, renderSettingsRef)
 
@@ -63,6 +65,12 @@ export function SpiralCanvas({ config, isPaused, onControls, reactiveModsRef, re
     panRef.current.offsetY = 0
     applyTransform()
   }, [applyTransform])
+
+  // Expose center function to parent
+  useEffect(() => {
+    if (centerRef) centerRef.current = resetZoomPan
+    return () => { if (centerRef) centerRef.current = null }
+  }, [centerRef, resetZoomPan])
 
   // ── Zoom (mouse wheel) — zooms toward cursor ────────────────────────────────
   const handleWheel = useCallback((e: WheelEvent) => {
