@@ -169,22 +169,67 @@ export function useSpiralAnimation(
     } else if (spiralFamily === 'archimedean') {
       // ── Archimedean Family ──────────────────────────────────────────────────
       // stepLength drives angular resolution: higher = coarser, faster advance
-      const thetaStep = cfg.stepLength * 0.01
+      let thetaStep = cfg.stepLength * 0.01
+      const direction = cfg.reverseDirection ? -1 : 1
+      thetaStep *= direction
+
+      // Acceleration: speed up/slow down advance over time
+      if (cfg.acceleration !== 0) {
+        thetaStep *= Math.max(0.01, 1 + cfg.acceleration * stepCount)
+      }
+
+      // Oscillation: modulate advance rate
+      if (cfg.oscillate) {
+        oscPhaseRef.current += cfg.oscillationSpeed * 0.05
+        thetaStep *= 1 + Math.sin(oscPhaseRef.current) * 0.5
+      }
+
       tRef.current += thetaStep
 
       const originX = (cfg.originX - 0.5) * renderer.canvasWidth
       const originY = (0.5 - cfg.originY) * renderer.canvasHeight
       const raw = getArchimedeanPoint(tRef.current, cfg)
-      const currentPos = { x: raw.x + originX, y: raw.y + originY }
-      const prevPos = prevPosRef.current ?? currentPos
+      let currentPos = { x: raw.x + originX, y: raw.y + originY }
 
+      // Wobble: positional jitter
+      if (cfg.wobble) {
+        wobblePhaseRef.current += cfg.wobbleSpeed * 0.1
+        const jx = (Math.random() * 2 - 1) * cfg.wobbleIntensity * 10
+        const jy = (Math.random() * 2 - 1) * cfg.wobbleIntensity * 10
+        currentPos = { x: currentPos.x + jx, y: currentPos.y + jy }
+      }
+
+      // Pulse: modulate radial scale
+      if (cfg.pulseEffect) {
+        const pulse = 1 + cfg.pulseRange * Math.sin(stepCount * cfg.pulseSpeed * 0.1)
+        currentPos = {
+          x: originX + (currentPos.x - originX) * pulse,
+          y: originY + (currentPos.y - originY) * pulse,
+        }
+      }
+
+      const prevPos = prevPosRef.current ?? currentPos
       _drawWithSymmetry(renderer, prevPos, currentPos, cfg, r, g, b, a)
       prevPosRef.current = { ...currentPos }
 
     } else if (spiralFamily === 'parametric') {
       // ── Parametric Family ───────────────────────────────────────────────────
       // stepLength drives t-advance rate: higher = faster/coarser sweep
-      const tStep = cfg.stepLength * 0.004
+      let tStep = cfg.stepLength * 0.004
+      const direction = cfg.reverseDirection ? -1 : 1
+      tStep *= direction
+
+      // Acceleration: speed up/slow down advance over time
+      if (cfg.acceleration !== 0) {
+        tStep *= Math.max(0.01, 1 + cfg.acceleration * stepCount)
+      }
+
+      // Oscillation: modulate advance rate
+      if (cfg.oscillate) {
+        oscPhaseRef.current += cfg.oscillationSpeed * 0.05
+        tStep *= 1 + Math.sin(oscPhaseRef.current) * 0.5
+      }
+
       tRef.current += tStep
 
       // Scale: 40% of the shorter canvas dimension
@@ -193,9 +238,26 @@ export function useSpiralAnimation(
       const originX = (cfg.originX - 0.5) * renderer.canvasWidth
       const originY = (0.5 - cfg.originY) * renderer.canvasHeight
       const raw = getParametricPoint(tRef.current, cfg, scale)
-      const currentPos = { x: raw.x + originX, y: raw.y + originY }
-      const prevPos = prevPosRef.current ?? currentPos
+      let currentPos = { x: raw.x + originX, y: raw.y + originY }
 
+      // Wobble: positional jitter
+      if (cfg.wobble) {
+        wobblePhaseRef.current += cfg.wobbleSpeed * 0.1
+        const jx = (Math.random() * 2 - 1) * cfg.wobbleIntensity * 10
+        const jy = (Math.random() * 2 - 1) * cfg.wobbleIntensity * 10
+        currentPos = { x: currentPos.x + jx, y: currentPos.y + jy }
+      }
+
+      // Pulse: modulate scale
+      if (cfg.pulseEffect) {
+        const pulse = 1 + cfg.pulseRange * Math.sin(stepCount * cfg.pulseSpeed * 0.1)
+        currentPos = {
+          x: originX + (currentPos.x - originX) * pulse,
+          y: originY + (currentPos.y - originY) * pulse,
+        }
+      }
+
+      const prevPos = prevPosRef.current ?? currentPos
       _drawWithSymmetry(renderer, prevPos, currentPos, cfg, r, g, b, a)
       prevPosRef.current = { ...currentPos }
     }

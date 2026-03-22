@@ -81,23 +81,23 @@ export function archimedeanPoint(theta: number, a: number, b: number): { x: numb
   return polarToCartesian(Math.max(0, r), theta)
 }
 
-/** Fermat's spiral: r = a·√θ  (two branches: ±) */
-export function fermatPoint(theta: number, a: number): { x: number; y: number } {
-  const r = a * Math.sqrt(Math.abs(theta))
+/** Fermat's spiral: r = a·√(b·θ) — b controls tightness */
+export function fermatPoint(theta: number, a: number, b: number): { x: number; y: number } {
+  const r = a * Math.sqrt(Math.abs(b * theta))
   return polarToCartesian(r, theta)
 }
 
-/** Hyperbolic spiral: r = a / θ */
-export function hyperbolicPoint(theta: number, a: number): { x: number; y: number } {
+/** Hyperbolic spiral: r = (a·b) / θ — b scales the radius */
+export function hyperbolicPoint(theta: number, a: number, b: number): { x: number; y: number } {
   if (Math.abs(theta) < 0.001) return { x: 0, y: 0 }
-  const r = a / theta
+  const r = (a * b) / theta
   return polarToCartesian(r, theta)
 }
 
-/** Lituus spiral: r² = a² / θ  →  r = a / √θ */
-export function lituusPoint(theta: number, a: number): { x: number; y: number } {
+/** Lituus spiral: r = a·√(b) / √θ — b scales the radius */
+export function lituusPoint(theta: number, a: number, b: number): { x: number; y: number } {
   if (Math.abs(theta) < 0.001) return { x: 0, y: 0 }
-  const r = a / Math.sqrt(Math.abs(theta))
+  const r = a * Math.sqrt(b) / Math.sqrt(Math.abs(theta))
   return polarToCartesian(r, theta)
 }
 
@@ -206,11 +206,11 @@ export function getArchimedeanPoint(
     case 'archimedean':
       return archimedeanPoint(theta, config.archA, config.archB)
     case 'fermat':
-      return fermatPoint(theta, config.archA)
+      return fermatPoint(theta, config.archA, config.archB)
     case 'hyperbolic':
-      return hyperbolicPoint(theta, config.archA)
+      return hyperbolicPoint(theta, config.archA, config.archB)
     case 'lituus':
-      return lituusPoint(theta, config.archA)
+      return lituusPoint(theta, config.archA, config.archB)
     default:
       return { x: 0, y: 0 }
   }
@@ -231,10 +231,15 @@ export function getParametricPoint(
       return lissajousPoint(t, config.lissFreqX, config.lissFreqY, config.lissPhase, scale)
     case 'rose':
       return rosePoint(t, config.roseK, config.roseD, scale)
-    case 'epitrochoid':
-      return epitrochoidPoint(t, config.trochoidR, config.trochoidr, config.trochoidD)
-    case 'hypotrochoid':
-      return hypotrochoidPoint(t, config.trochoidR, config.trochoidr, config.trochoidD)
+    case 'epitrochoid': {
+      // Normalize trochoid values to a proportion of canvas scale
+      const normFactor = scale / 200
+      return epitrochoidPoint(t, config.trochoidR * normFactor, config.trochoidr * normFactor, config.trochoidD * normFactor)
+    }
+    case 'hypotrochoid': {
+      const normFactor = scale / 200
+      return hypotrochoidPoint(t, config.trochoidR * normFactor, config.trochoidr * normFactor, config.trochoidD * normFactor)
+    }
     case 'harmonograph':
       return harmonographPoint(
         t,
